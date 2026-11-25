@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Inventaris Barang</title><link rel="stylesheet" href="style.css"></head>
+<body><main>
+<a class="back" href="index.html">‹ Halaman utama</a>
+<h1>Inventaris Barang</h1>
+<p class="sub">Catat barang yang ada. Data tersimpan di Vercel Blob.</p>
+<form id="f">
+  <label>Nama barang<input name="nama" required maxlength="80"></label>
+  <label>Jumlah<input name="jumlah" type="number" min="0" required></label>
+  <label>Lokasi<input name="lokasi" maxlength="80"></label>
+  <button>Simpan barang</button>
+</form>
+<p id="msg" class="msg" role="status"></p>
+<div class="wrap"><table>
+  <thead><tr><th>Nama</th><th>Jumlah</th><th>Lokasi</th><th></th></tr></thead>
+  <tbody id="rows"></tbody>
+</table></div>
+<script>
+const $=s=>document.querySelector(s), msg=$('#msg');
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+async function load(){
+  try{
+    const r=await fetch('/api/inventaris'); if(!r.ok) throw 0;
+    const d=await r.json();
+    $('#rows').innerHTML=d.length?d.map(i=>`<tr><td>${esc(i.nama)}</td><td>${esc(i.jumlah)}</td><td>${esc(i.lokasi||'-')}</td><td><button class="del" data-id="${i.id}">Hapus</button></td></tr>`).join(''):'<tr><td colspan="4" class="empty">Belum ada barang. Isi formulir di atas untuk menambah.</td></tr>';
+    msg.textContent='';
+  }catch{msg.className='msg err';msg.textContent='Gagal memuat data. Pastikan Vercel Blob sudah terhubung.'}
+}
+$('#f').onsubmit=async e=>{
+  e.preventDefault(); const fd=Object.fromEntries(new FormData(e.target));
+  msg.className='msg'; msg.textContent='Menyimpan...';
+  const r=await fetch('/api/inventaris',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(fd)});
+  if(!r.ok){msg.className='msg err';msg.textContent='Gagal menyimpan barang.';return}
+  e.target.reset(); load();
+};
+$('#rows').onclick=async e=>{
+  const id=e.target.dataset.id; if(!id) return;
+  await fetch('/api/inventaris?id='+id,{method:'DELETE'}); load();
+};
+load();
+</script></main></body></html>

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Penyimpanan File</title><link rel="stylesheet" href="style.css"></head>
+<body><main>
+<a class="back" href="index.html">‹ Halaman utama</a>
+<h1>Penyimpanan File</h1>
+<p class="sub">Unggah dokumen barang (maksimal 4 MB per file) lalu buka kembali dari daftar.</p>
+<form id="f">
+  <label>Pilih file<input type="file" name="file" required></label>
+  <button>Unggah file</button>
+</form>
+<p id="msg" class="msg" role="status"></p>
+<div class="wrap"><table>
+  <thead><tr><th>Nama file</th><th>Ukuran</th><th>Diunggah</th><th></th></tr></thead>
+  <tbody id="rows"></tbody>
+</table></div>
+<script>
+const $=s=>document.querySelector(s), msg=$('#msg');
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+async function load(){
+  try{
+    const r=await fetch('/api/files'); if(!r.ok) throw 0;
+    const d=await r.json();
+    $('#rows').innerHTML=d.length?d.map(f=>`<tr><td><a class="file" href="${esc(f.url)}" target="_blank" rel="noopener">${esc(f.name)}</a></td><td>${(f.size/1024).toFixed(1)} KB</td><td>${new Date(f.uploadedAt).toLocaleString('id-ID')}</td><td><button class="del" data-url="${esc(f.url)}">Hapus</button></td></tr>`).join(''):'<tr><td colspan="4" class="empty">Belum ada file. Pilih file lalu klik Unggah file.</td></tr>';
+  }catch{msg.className='msg err';msg.textContent='Gagal memuat daftar file. Pastikan Vercel Blob sudah terhubung.'}
+}
+$('#f').onsubmit=async e=>{
+  e.preventDefault(); const file=e.target.file.files[0];
+  if(file.size>4*1024*1024){msg.className='msg err';msg.textContent='File melebihi 4 MB.';return}
+  msg.className='msg'; msg.textContent='Mengunggah...';
+  const r=await fetch('/api/files?name='+encodeURIComponent(file.name),{method:'POST',body:file});
+  if(!r.ok){msg.className='msg err';msg.textContent='Gagal mengunggah file.';return}
+  msg.textContent='File berhasil diunggah.'; e.target.reset(); load();
+};
+$('#rows').onclick=async e=>{
+  const url=e.target.dataset.url; if(!url) return;
+  await fetch('/api/files?url='+encodeURIComponent(url),{method:'DELETE'}); load();
+};
+load();
+</script></main></body></html>

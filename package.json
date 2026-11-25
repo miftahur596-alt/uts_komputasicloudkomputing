@@ -1,0 +1,6 @@
+{
+  "name": "gudang-cloud",
+  "version": "1.0.0",
+  "type": "module",
+  "dependencies": { "@vercel/blob": "^1.0.0" }
+}
